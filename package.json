@@ -1,0 +1,33 @@
+{
+  "name": "fauxerhose-transform-cloudwatch",
+  "version": "1.0.0",
+  "description": "A transform that unzips CloudWatch events for fauxerhose",
+  "main": "fauxerhose-transform-cloudwatch.js",
+  "scripts": {
+    "ava": "ava",
+    "test": "nyc --all ava && nyc report --reporter=lcov",
+    "posttest": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dougmoscrop/fauxerhose-transform-cloudwatch.git"
+  },
+  "keywords": [
+    "kinesis",
+    "firehose",
+    "transform",
+    "cloudwatch"
+  ],
+  "author": "Doug Moscrop <doug.moscrop@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dougmoscrop/fauxerhose-transform-cloudwatch/issues"
+  },
+  "homepage": "https://github.com/dougmoscrop/fauxerhose-transform-cloudwatch#readme",
+  "devDependencies": {
+    "ava": "^0.22.0",
+    "fauxerhose": "^1.0.0",
+    "nyc": "^11.2.1",
+    "sinon": "^4.0.1"
+  }
+}
