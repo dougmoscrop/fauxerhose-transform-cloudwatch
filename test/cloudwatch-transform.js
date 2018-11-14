@@ -114,3 +114,41 @@ test('zip record with logEvents', t => {
       t.deepEqual(invalid[3].reason, 'missing message or id');
     });
 });
+
+test('supports a parse helper', t => {
+  const data = helpers.zip({
+    messageType: 'DATA_MESSAGE',
+    owner: '1234567890',
+    logGroup: 'test',
+    logStream: 'test-foo',
+    logEvents: [{ id: 'test', message: JSON.stringify({ test: 'message' }) }]
+  });
+
+  const parse = (record) => {
+    record.logEvent.message = JSON.parse(record.logEvent.message);
+    return record;
+  };
+
+  return helpers.run({
+    transform: cloudwatch({ parse }),
+    Records: [{ kinesis: { data } }]
+  })
+    .then(({ valid, invalid }) => {
+      t.deepEqual(valid, [
+        {
+          owner: '1234567890',
+          logGroup: 'test',
+          logStream: 'test-foo',
+          logEvent: { id: 'test', message: { test: 'message' } }
+        }
+      ]);
+      t.deepEqual(invalid.length, 0);
+    });
+});
+
+test('throws when parse is not a function', t => {
+  const parse = 'junk';
+
+  const err = t.throws(() => cloudwatch({ parse }));
+  t.is(err.message, 'cloudwatch-transform: parse must be a function');
+});

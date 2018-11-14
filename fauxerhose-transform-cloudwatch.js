@@ -2,7 +2,15 @@
 
 const unzip = require('./lib/unzip');
 
-module.exports = function () {
+const identity = i => i;
+
+module.exports = function (options = {}) {
+  const { parse = identity } = options;
+
+  if (typeof parse !== 'function') {
+    throw new Error('cloudwatch-transform: parse must be a function');
+  }
+  
   return function cloudwatchTransform(record) {
     return Promise.resolve()
       .then(() => {
@@ -21,7 +29,9 @@ module.exports = function () {
           if (Array.isArray(parsed.logEvents)) {
             parsed.logEvents.forEach(logEvent => {
               if (logEvent.message && logEvent.id) {
-                this.emit('data', { owner, logGroup, logStream, logEvent });
+                const record = { owner, logGroup, logStream, logEvent };
+                const parsed = parse(record);
+                this.emit('data', parsed);
               } else {
                 this.emit('invalid', { reason: 'missing message or id', logEvent });
               }
