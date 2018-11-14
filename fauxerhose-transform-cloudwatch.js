@@ -12,12 +12,16 @@ module.exports = function () {
         return JSON.parse(unzipped.toString('utf8'));
       })
       .then(parsed => {
+        if (parsed.messageType === 'CONTROL_MESSAGE') {
+          return;
+        }
         if (parsed.messageType === 'DATA_MESSAGE') {
+          const { owner, logGroup, logStream } = parsed;
+
           if (Array.isArray(parsed.logEvents)) {
             parsed.logEvents.forEach(logEvent => {
               if (logEvent.message && logEvent.id) {
-                const { id, message } = logEvent;
-                this.emit('data', { id, message });
+                this.emit('data', { owner, logGroup, logStream, logEvent });
               } else {
                 this.emit('invalid', { reason: 'missing message or id', logEvent });
               }

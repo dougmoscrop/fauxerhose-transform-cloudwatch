@@ -25,9 +25,10 @@
   },
   "homepage": "https://github.com/dougmoscrop/fauxerhose-transform-cloudwatch#readme",
   "devDependencies": {
-    "ava": "^0.22.0",
+    "ava": "^0.25.0",
+    "eslint": "^5.9.0",
     "fauxerhose": "^1.0.0",
-    "nyc": "^11.2.1",
-    "sinon": "^4.0.1"
+    "nyc": "^13.1.0",
+    "sinon": "^7.1.1"
   }
 }

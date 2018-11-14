@@ -65,10 +65,27 @@ test('accepts a zip record with empty logEvents', t => {
     });
 });
 
+test('skips control messages', t => {
+  const data = helpers.zip({
+    messageType: 'CONTROL_MESSAGE',
+  });
+
+  return helpers.run({
+    transform: cloudwatch(),
+    Records: [{ kinesis: { data } }]
+  })
+    .then(({ valid, invalid }) => {
+      t.deepEqual(valid, []);
+      t.deepEqual(invalid, []);
+    });
+});
 
 test('zip record with logEvents', t => {
   const data = helpers.zip({
     messageType: 'DATA_MESSAGE',
+    owner: '1234567890',
+    logGroup: 'test',
+    logStream: 'test-foo',
     logEvents: [{}, { id: 'abc' }, { message: 'test' }, { id: 'test', message: 'foo' }, { id: 'test2', message: JSON.stringify({ test: 'message ' }) }, {}]
   });
 
@@ -77,7 +94,19 @@ test('zip record with logEvents', t => {
     Records: [{ kinesis: { data } }]
   })
     .then(({ valid, invalid }) => {
-      t.deepEqual(valid, [{ id: 'test', message: 'foo' }, { id: 'test2', message: '{"test":"message "}' }]);
+      t.deepEqual(valid, [
+        {
+          owner: '1234567890',
+          logGroup: 'test',
+          logStream: 'test-foo',
+          logEvent: { id: 'test', message: 'foo' }
+        }, {
+          owner: '1234567890',
+          logGroup: 'test',
+          logStream: 'test-foo',
+          logEvent: { id: 'test2', message: '{"test":"message "}' }
+        }
+      ]);
       t.deepEqual(invalid.length, 4);
       t.deepEqual(invalid[0].reason, 'missing message or id');
       t.deepEqual(invalid[1].reason, 'missing message or id');
