@@ -16,23 +16,24 @@ module.exports.encode = function(obj) {
 module.exports.run = function(options) {
   const { Records = [], transform, writeErr } = options;
 
-  const invalid = [];
-  const valid = [];
+  const records = [];
 
   const write = sinon.spy(function(record, encoding, callback) {
-    valid.push(record);
+    records.push(record);
     callback(writeErr);
   });
 
-  const destination = () => {
-    return new stream.Writable({
-      objectMode: true,
-      write
-    }).on('invalid', record => invalid.push(record));
+  const destination = class Destination extends stream.Writable {
+    constructor() {
+      super({ objectMode: true });
+    }
+    _write(record, encoding, callback) {
+      return write(record, encoding, callback);
+    }
   };
 
   return fauxerhose({ destination, transform })({ Records })
     .then(() => {
-      return { invalid, valid, write };
+      return records;
     });
 };

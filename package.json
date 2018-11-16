@@ -24,10 +24,13 @@
     "url": "https://github.com/dougmoscrop/fauxerhose-transform-cloudwatch/issues"
   },
   "homepage": "https://github.com/dougmoscrop/fauxerhose-transform-cloudwatch#readme",
+  "peerDependencies": {
+    "fauxerhose": "^2.0.1"
+  },
   "devDependencies": {
     "ava": "^0.25.0",
     "eslint": "^5.9.0",
-    "fauxerhose": "^1.0.0",
+    "fauxerhose": "^2.0.1",
     "nyc": "^13.1.0",
     "sinon": "^7.1.1"
   }

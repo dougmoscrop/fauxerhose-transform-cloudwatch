@@ -6,47 +6,72 @@ const cloudwatch = require('..');
 
 const helpers = require('./_helpers');
 
-test('skips a record that is not zipped', t => {
-  return helpers.run({
-    transform: cloudwatch(),
-    Records: [{ kinesis: { data: Buffer.from('abc').toString('base64') } }]
-  })
-    .then(({ invalid }) => {
-      t.deepEqual(invalid.length, 1);
+test('throws with no messageType', async t => {
+  try {
+    await helpers.run({
+      transform: cloudwatch(),
+      Records: [{ kinesis: { data: helpers.zip({ test: 'value' }) } }]
     });
+    t.fail('should not reach here');
+  } catch (err) {
+    t.is(err.message, 'unknown messageType undefined');
+  }
 });
 
-test('skips a zip record with no messageType', t => {
-  return helpers.run({
-    transform: cloudwatch(),
-    Records: [{ kinesis: { data: helpers.zip({ test: 'value' }) } }]
-  })
-    .then(({ invalid }) => {
-      t.true(invalid.length === 1);
-      t.deepEqual(invalid[0].reason, 'unknown messageType undefined');
+test('throws with no messageType', async t => {
+  try {
+    await helpers.run({
+      transform: cloudwatch(),
+      Records: [{ kinesis: { data: helpers.zip({ messageType: 'BEEP', test: 'value' }) } }]
     });
+    t.fail('should not reach here');
+  } catch (err) {
+    t.is(err.message, 'unknown messageType BEEP');
+  }
 });
 
-test('skips a zip record with wrong messageType', t => {
-  return helpers.run({
-    transform: cloudwatch(),
-    Records: [{ kinesis: { data: helpers.zip({ messageType: 'CONTROL' }) } }]
-  })
-    .then(({ invalid }) => {
-      t.true(invalid.length === 1);
-      t.deepEqual(invalid[0].reason, 'unknown messageType CONTROL');
+test('throws on a record that is not zipped', async t => {
+  try {
+    await helpers.run({
+      transform: cloudwatch(),
+      Records: [{ kinesis: { data: Buffer.from('abc').toString('base64') } }]
     });
+    t.fail('should not reach here');
+  } catch (err) {
+    t.is(err.message, 'incorrect header check');
+  }
 });
 
-test('skips a zip record with missing logEvents', t => {
-  return helpers.run({
-    transform: cloudwatch(),
-    Records: [{ kinesis: { data: helpers.zip({ messageType: 'DATA_MESSAGE' }) } }]
-  })
-    .then(({ invalid }) => {
-      t.true(invalid.length === 1);
-      t.deepEqual(invalid[0].reason, 'expected logEvents to be an array but got undefined');
+test('throws on a record with missing logEvents', async t => {
+  try {
+    await helpers.run({
+      transform: cloudwatch(),
+      Records: [{ kinesis: { data: helpers.zip({ messageType: 'DATA_MESSAGE' }) } }]
     });
+    t.fail('should not reach here');
+  } catch (err) {
+    t.is(err.message, 'expected logEvents to be an Array but got undefined');
+  }
+});
+
+test('throws on a message missing id', async t => {
+  try {
+    const data = helpers.zip({
+      messageType: 'DATA_MESSAGE',
+      owner: '1234567890',
+      logGroup: 'test',
+      logStream: 'test-foo',
+      logEvents: [{ message: 'test' }]
+    });
+
+    await helpers.run({
+      transform: cloudwatch(),
+      Records: [{ kinesis: { data } }]
+    });
+    t.fail('should not reach here');
+  } catch (err) {
+    t.is(err.message, 'missing message or id');
+  }
 });
 
 test('accepts a zip record with empty logEvents', t => {
@@ -59,13 +84,12 @@ test('accepts a zip record with empty logEvents', t => {
     transform: cloudwatch(),
     Records: [{ kinesis: { data } }]
   })
-    .then(({ valid, invalid }) => {
-      t.deepEqual(valid, []);
-      t.deepEqual(invalid, []);
+    .then(records => {
+      t.deepEqual(records, []);
     });
 });
 
-test('skips control messages', t => {
+test('skips control record with empty logEvents', t => {
   const data = helpers.zip({
     messageType: 'CONTROL_MESSAGE',
   });
@@ -74,9 +98,8 @@ test('skips control messages', t => {
     transform: cloudwatch(),
     Records: [{ kinesis: { data } }]
   })
-    .then(({ valid, invalid }) => {
-      t.deepEqual(valid, []);
-      t.deepEqual(invalid, []);
+    .then(records => {
+      t.deepEqual(records, []);
     });
 });
 
@@ -86,15 +109,15 @@ test('zip record with logEvents', t => {
     owner: '1234567890',
     logGroup: 'test',
     logStream: 'test-foo',
-    logEvents: [{}, { id: 'abc' }, { message: 'test' }, { id: 'test', message: 'foo' }, { id: 'test2', message: JSON.stringify({ test: 'message ' }) }, {}]
+    logEvents: [{ id: 'test', message: 'foo' }, { id: 'test2', message: JSON.stringify({ test: 'message ' }) }]
   });
 
   return helpers.run({
     transform: cloudwatch(),
     Records: [{ kinesis: { data } }]
   })
-    .then(({ valid, invalid }) => {
-      t.deepEqual(valid, [
+    .then(records => {
+      t.deepEqual(records, [
         {
           owner: '1234567890',
           logGroup: 'test',
@@ -107,11 +130,6 @@ test('zip record with logEvents', t => {
           logEvent: { id: 'test2', message: '{"test":"message "}' }
         }
       ]);
-      t.deepEqual(invalid.length, 4);
-      t.deepEqual(invalid[0].reason, 'missing message or id');
-      t.deepEqual(invalid[1].reason, 'missing message or id');
-      t.deepEqual(invalid[2].reason, 'missing message or id');
-      t.deepEqual(invalid[3].reason, 'missing message or id');
     });
 });
 
@@ -133,8 +151,8 @@ test('supports a parse helper', t => {
     transform: cloudwatch({ parse }),
     Records: [{ kinesis: { data } }]
   })
-    .then(({ valid, invalid }) => {
-      t.deepEqual(valid, [
+    .then(records => {
+      t.deepEqual(records, [
         {
           owner: '1234567890',
           logGroup: 'test',
@@ -142,7 +160,6 @@ test('supports a parse helper', t => {
           logEvent: { id: 'test', message: { test: 'message' } }
         }
       ]);
-      t.deepEqual(invalid.length, 0);
     });
 });
 
@@ -150,5 +167,5 @@ test('throws when parse is not a function', t => {
   const parse = 'junk';
 
   const err = t.throws(() => cloudwatch({ parse }));
-  t.is(err.message, 'cloudwatch-transform: parse must be a function');
+  t.is(err.message, 'fauxerhose-transform-cloudwatch: parse must be a function');
 });
