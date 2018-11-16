@@ -1,6 +1,6 @@
 {
   "name": "fauxerhose-transform-cloudwatch",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "A transform that unzips CloudWatch events for fauxerhose",
   "main": "fauxerhose-transform-cloudwatch.js",
   "scripts": {
